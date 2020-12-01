@@ -23,13 +23,13 @@ AIR，即 Automatic（自动化）、Indepenndent（独立性）、Repleatable�
 
 集成测试的测试对象是整个系统或者某个功能模块，比如测试用户注册、登录功能是否正常，是一种端到端的测试。如果测试用例使用到真实的系统时间、真实的文件系统、真实的数据库，亦或者是其他真实的外部依赖，那么该测试已经进入到了集成测试的领域。
 
-<img src="./images/unittest.png" width = "400" alt="图片名称" align=center />
+<img src="./images/unittest.png" width = "400" alt="图片名称" align=center style="margin: 0 auto"/>
 
 对集成测试以及后续的其他测试，本节不做过多展开，有兴趣的同学可以自行学习。
 
 ### 1.4 价值意义
 
-可能有同学会问，引入单元测试能解决什么痛点，带来什么价值呢？
+那么我们花这么大力气引入单元测试能解决什么痛点，带来什么价值呢？
 
 在笔者看来，单元测试可以带来代码质量提升、低成本确认问题、缩短上线流程等提高人效的价值，毕竟研发事无巨细地检查每一个功能，也不如程序自动完成来得全面和准确。另外减少低级错误导致测试人员与研发人员之间的信任问题，也可以让测试投出更多宝贵的时间参与到产品讨论和需求评审。
 
@@ -135,8 +135,8 @@ ok      unittest 0.013s
 
 ![](images/gomock.png)
 1. 第一步：逻辑代码中定义好你需要接口；
-2. 第二步：使用gomock的mockgen工具生成mock文件；
-3. 第三步：引入mock文件，对方法进行打桩并断言后续逻辑；
+2. 第二步：使用 gomock 的 mockgen 工具生成 mock 文件；
+3. 第三步：引入 mock 文件，对方法进行打桩并断言后续逻辑；
 
 更多详情可以访问它的[使用文档](https://pkg.go.dev/github.com/golang/mock/gomock)和[代码仓库](https://github.com/golang/mock)。
 
@@ -227,11 +227,326 @@ func NewUserService () {
 
 
 ## 三、实践
+说这么多，我们看看到底应该怎么做吧。现在假设我们存在一组 CRUD 的接口按照常规 MVC 分层，伪代码如下：
 
+入口文件，主要是负责初始化路由：
+
+<details>
+
+```golang
+package main
+
+import (
+	"net/http"
+	"time"
+
+	"github.com/gin-gonic/gin"
+	"github.com/zhulinwei/go-dc/pkg/config"
+	"github.com/zhulinwei/go-dc/pkg/router"
+	"github.com/zhulinwei/go-dc/pkg/util/log"
+)
+
+func main() {
+	route := gin.New()
+	router.InitRoute(route)
+	server := &http.Server{
+		// 监听的TCP地址
+		Addr: config.ServerConfig().HttpPort,
+		// http句柄，用于处理程序响应的HTTP请求
+		Handler: route,
+		// 等待的最大时间
+		IdleTimeout: 6 * time.Minute,
+		// 允许读取的最大时间
+		ReadTimeout: 30 * time.Second,
+		// 允许写入的最大时间
+		WriteTimeout: 30 * time.Second,
+		// 请求头的最大字节数
+		MaxHeaderBytes: 1 << 20,
+	}
+	if err := server.ListenAndServe(); err != nil {
+		log.Error("server run failed", log.String("err", err.Error()))
+	}
+}
+```
+</details>
+
+路由文件，负责注册路由和分发任务：
+<details>
+
+```golang
+package router
+
+import (
+	"github.com/gin-gonic/gin"
+	"github.com/zhulinwei/go-dc/pkg/controller"
+)
+
+type IUserRouter interface {
+	InitRouter(r *gin.Engine)
+}
+
+type UserRouter struct {
+	UserController controller.IUserController
+}
+
+func BuildUserRouter() IUserRouter {
+	return UserRouter{
+		UserController: controller.BuildUserController(),
+	}
+}
+
+func (userRouter UserRouter) InitRouter(r *gin.Engine) {
+	route := r.Group("/api")
+
+	route.POST("/v1/users", userRouter.UserController.SaveUser)
+	route.GET("/v1/users/:name", userRouter.UserController.QueryUserByName)
+	route.PUT("/v1/users/:name", userRouter.UserController.UpdateUserByName)
+	route.DELETE("/v1/users/:name", userRouter.UserController.RemoveUserByName)
+}
+```
+</details>
+
+控制层文件，负责常规的参数校验和结果响应：
+
+<details>
+
+```golang
+package controller
+
+import (
+	"net/http"
+
+	"github.com/zhulinwei/go-dc/pkg/util"
+
+	"github.com/gin-gonic/gin"
+	"github.com/zhulinwei/go-dc/pkg/model"
+	"github.com/zhulinwei/go-dc/pkg/service"
+	"github.com/zhulinwei/go-dc/pkg/util/log"
+)
+
+type IUserController interface {
+	SaveUser(ctx *gin.Context)
+	QueryUserByName(ctx *gin.Context)
+	UpdateUserByName(ctx *gin.Context)
+	RemoveUserByName(ctx *gin.Context)
+}
+
+type UserController struct {
+	userService service.IUserService
+}
+
+func BuildUserController() IUserController {
+	return UserController{
+		userService: service.BuildUserService(),
+	}
+}
+
+// Create
+func (ctrl UserController) SaveUser(ctx *gin.Context) {
+  // 解析前端数据
+	var user model.UserRequest
+	if err := ctx.ShouldBind(&user); err != nil {
+		log.Error("gin bind user error", log.String("error", err.Error()))
+		ctx.JSON(http.StatusBadRequest, model.Response{Code: -1, Msg: util.ParserErrorMsg(err)})
+		return
+	}
+	// 调用服务层逻辑
+	saveID := ctrl.userService.SaveUser(user)
+	// 返回处理结果
+	ctx.JSON(http.StatusOK, model.Response{Code: 0, Msg: "success", Data: gin.H{"id": saveID}})
+}
+
+// Read
+func (ctrl UserController) QueryUserByName(ctx *gin.Context) {
+  name := ctx.Param("name")
+	// 可以进一步判断user是否为nil值
+	user, err := ctrl.userService.QueryUserByName(name)
+	if err != nil {
+		log.Error("query user fail", log.String("error", err.Error()))
+		ctx.JSON(http.StatusInternalServerError, nil)
+		return
+	}
+	ctx.JSON(http.StatusOK, model.Response{Code: 0, Msg: "success", Data: user})
+}
+
+// Update
+func (ctrl UserController) UpdateUserByName(ctx *gin.Context) {}
+
+// Delete
+func (ctrl UserController) RemoveUserByName(ctx *gin.Context) {}
+```
+</details>
+
+服务层文件，处理控制文件传入的数据并进行业务处理：
+
+<details>
+
+```golang
+package service
+
+import (
+	"github.com/zhulinwei/go-dc/pkg/cache"
+	"github.com/zhulinwei/go-dc/pkg/dao"
+	"github.com/zhulinwei/go-dc/pkg/model"
+)
+
+type IUserService interface {
+  SaveUser(user model.UserRequest) interface{}
+  QueryUserByName(name string) (*model.UserDB, error)
+}
+
+type UserService struct {
+	UserDao dao.IUserDao
+}
+
+func BuildUserService() IUserService {
+	return UserService{
+		UserDao: dao.BuildUserDao(),
+	}
+}
+
+// Save user
+func (service UserService) SaveUser(user model.UserRequest) interface{} {
+	if result, err := service.UserDao.SaveUser(user); err != nil {
+		return nil
+	} else {
+		return result.InsertedID
+	}
+}
+
+// Query User
+func (service UserService) QueryUserByName(name string) (*model.UserDB, error) {
+	return service.UserDao.QueryUserByName(name)
+}
+```
+
+</details>
+
+好吧，这个服务层文件的逻辑比较简单，我们看看怎么对它的 SaveUser 方法进行单元测试。
+
+首先是识别依赖，在这里我们只需要根据 SaveUser 方法的输入来测试它的输出值是否复合我们的预期即可，而它里面调用的 Dao 操作就是它的外部依赖；接着我们需要对这个 Dao 操作进行打桩和 mock 处理，即直接假设 Dao 能返回我们所需的结果，或者假设 Dao 会抛出 err，然后来判断我们的 SaveUser 方法逻辑是否能复合预期。
+
+我们使用 Golang 的官方测试框架`gomock`来进行打桩和 mock。
+
+下载gomock：
+```shell
+go get -u github.com/golang/mock/gomock
+go get -u github.com/golang/mock/mockgen
+```
+
+使用 gomock 的脚手架工具 mockgen 生成 Dao 文件对应的 Mock 文件：
+```shell   
+mockgen -destination pkg/dao/mock/user_mock.go -source pkg/dao/user.go
+```
+
+针对 SaveUser 方法编写单元测试：
+<details>
+
+```golang
+package service
+
+import (
+	"testing"
+
+	"github.com/golang/mock/gomock"
+	"github.com/stretchr/testify/assert"
+	mockDao "github.com/zhulinwei/go-dc/pkg/dao/mock"
+	"github.com/zhulinwei/go-dc/pkg/model"
+	"go.mongodb.org/mongo-driver/bson/primitive"
+	"go.mongodb.org/mongo-driver/mongo"
+)
+
+func TestUserService_SaveUser(t *testing.T) {
+	// mock data
+	mockTest := model.UserRequest{Age: 18, Name: "tony"}
+	mockObjectId := primitive.NewObjectID()
+
+	// mock request
+	mockCtrl := gomock.NewController(t)
+	defer mockCtrl.Finish()
+  mockUserDao := mockDao.NewMockIUserDao(mockCtrl)
+  // 对 UserDao 的 SaveUser 方法进行打桩，使其可以返回预期结果
+  mockUserDao.EXPECT().SaveUser(mockTest).Return(&mongo.InsertOneResult{InsertedID: mockObjectId})
+  // 将 mockUserDao 注入到 UserService 中，以替换原始 UserDao 逻辑
+	mockUserService := UserService{
+		UserDao: mockUserDao,
+	}
+	realResult := mockUserService.SaveUser(mockTest)
+
+	// assert result
+	assert.Equal(t, mockObjectId, realResult)
+}
+```
+</details>
+
+针对控制层文件的逻辑我们也是一样的处理思路，以 QueryUserByName 方法为例：方法内部调用的 Service 操作就是它的依赖，要对依赖进行打桩和 mock 处理，然后测试 QueryUserByName 方法能否正确校验参数和返回对应的结果或响应码。
+
+使用 gomock 的脚手架工具 mockgen 生成 Service 文件对应的 Mock 文件：
+```shell   
+mockgen -destination pkg/service/mock/user_mock.go -source pkg/service/user.go
+```
+
+针对 QueryUserByName 方法编写单元测试：
+
+```golang
+package controller
+
+import (
+	"encoding/json"
+	"io/ioutil"
+	"net/http/httptest"
+	"testing"
+
+	"github.com/gin-gonic/gin"
+	"github.com/golang/mock/gomock"
+	"github.com/stretchr/testify/assert"
+	"github.com/zhulinwei/go-dc/pkg/model"
+	mockService "github.com/zhulinwei/go-dc/pkg/service/mock"
+	"go.mongodb.org/mongo-driver/bson/primitive"
+)
+
+func TestUserController_QueryUserByName(t *testing.T) {
+	//mock data
+	const mockUrl = "/:name"
+	const mockName = "tony"
+	const mockMethod = "GET"
+	mockObjectId := primitive.NewObjectID()
+
+	// mock request
+	route := gin.Default()
+
+	mockCtrl := gomock.NewController(t)
+	defer mockCtrl.Finish()
+
+	mockUserService := mockService.NewMockIUserService(mockCtrl)
+	mockUserService.EXPECT().QueryUserByName(mockName).Return(&model.UserDB{ID: mockObjectId, Age: 18, Name: mockName})
+
+	mockUserController := UserController{
+		userService: mockUserService,
+	}
+	route.GET(mockUrl, mockUserController.QueryUserByName)
+	request := httptest.NewRequest(mockMethod, "/tony", nil)
+	recorder := httptest.NewRecorder()
+	route.ServeHTTP(recorder, request)
+
+	body, err := ioutil.ReadAll(recorder.Result().Body)
+	assert.NoError(t, err)
+
+	var result model.UserDB
+	err = json.Unmarshal(body, &result)
+	assert.NoError(t, err)
+
+	// assert result
+	assert.NoError(t, err)
+	assert.Equal(t, result.Name, mockName)
+}
+```
+
+更多详情可以参考笔者的[练习项目](https://github.com/zhulinwei/go-dc)
 
 ## 四、思考
 
-至此，希望以上知识能帮助你更好地掌握到如何在 Golang 中使用单元测试，最后，笔者也留下几个思考题，欢迎留言评论：
+至此，希望以上知识能帮助你更好地掌握到如何在 Golang 中使用单元测试。同时相信你也会发现，引入单元测试后必不可少地增加了维护成本，笔者也留下几个思考题，欢迎留言评论：
 
 1. 单元测试的粒度到底要做到多细？
 2. 单元测试的成本和受益如何平衡？
