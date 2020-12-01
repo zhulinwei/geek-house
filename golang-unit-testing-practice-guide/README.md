@@ -424,7 +424,7 @@ func (service UserService) QueryUserByName(name string) (*model.UserDB, error) {
 
 好吧，这个服务层文件的逻辑比较简单，我们看看怎么对它的 SaveUser 方法进行单元测试。
 
-首先是识别依赖，在这里我们只需要根据 SaveUser 方法的输入来测试它的输出值是否复合我们的预期即可，而它里面调用的 Dao 操作就是它的外部依赖；接着我们需要对这个 Dao 操作进行打桩和 mock 处理，即直接假设 Dao 能返回我们所需的结果，或者假设 Dao 会抛出 err，然后来判断我们的 SaveUser 方法逻辑是否能复合预期。
+首先是识别依赖，在这里我们只需要根据 SaveUser 方法的输入来测试它的输出值是否复合我们的预期即可，而它里面调用的 Dao 操作就是它的外部依赖；接着我们需要对这个 Dao 操作进行打桩和 mock 处理，即直接假设 Dao 能返回我们所需的结果，或者假设 Dao 会抛出 err，然后来判断我们的 SaveUser 方法逻辑是否能复合预期。
 
 我们使用 Golang 的官方测试框架`gomock`来进行打桩和 mock。
 
@@ -486,7 +486,9 @@ func TestUserService_SaveUser(t *testing.T) {
 mockgen -destination pkg/service/mock/user_mock.go -source pkg/service/user.go
 ```
 
-针对 QueryUserByName 方法编写单元测试：
+控制层的单元测试会相对麻烦一点，因为我们需要启动一个测试用的 HTTP Server 来响应我们的请求。避免使用真实项目中的 HTTP Server 的原因在于它会带来不必要的依赖项，而 mock 掉 HTTP Server 会方便我们的测试进行。针对 QueryUserByName 方法编写单元测试如下：
+
+<details>
 
 ```golang
 package controller
@@ -541,6 +543,7 @@ func TestUserController_QueryUserByName(t *testing.T) {
 	assert.Equal(t, result.Name, mockName)
 }
 ```
+</details>
 
 更多详情可以参考笔者的[练习项目](https://github.com/zhulinwei/go-dc)
 
