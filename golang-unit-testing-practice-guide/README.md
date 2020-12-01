@@ -277,31 +277,31 @@ func main() {
 package router
 
 import (
-	"github.com/gin-gonic/gin"
-	"github.com/zhulinwei/go-dc/pkg/controller"
+  "github.com/gin-gonic/gin"
+  "github.com/zhulinwei/go-dc/pkg/controller"
 )
 
 type IUserRouter interface {
-	InitRouter(r *gin.Engine)
+  InitRouter(r *gin.Engine)
 }
 
 type UserRouter struct {
-	UserController controller.IUserController
+  UserController controller.IUserController
 }
 
 func BuildUserRouter() IUserRouter {
-	return UserRouter{
-		UserController: controller.BuildUserController(),
-	}
+  return UserRouter{
+    UserController: controller.BuildUserController(),
+  }
 }
 
 func (userRouter UserRouter) InitRouter(r *gin.Engine) {
-	route := r.Group("/api")
+  route := r.Group("/api")
 
-	route.POST("/v1/users", userRouter.UserController.SaveUser)
-	route.GET("/v1/users/:name", userRouter.UserController.QueryUserByName)
-	route.PUT("/v1/users/:name", userRouter.UserController.UpdateUserByName)
-	route.DELETE("/v1/users/:name", userRouter.UserController.RemoveUserByName)
+  route.POST("/v1/users", userRouter.UserController.SaveUser)
+  route.GET("/v1/users/:name", userRouter.UserController.QueryUserByName)
+  route.PUT("/v1/users/:name", userRouter.UserController.UpdateUserByName)
+  route.DELETE("/v1/users/:name", userRouter.UserController.RemoveUserByName)
 }
 ```
 </details>
@@ -314,59 +314,59 @@ func (userRouter UserRouter) InitRouter(r *gin.Engine) {
 package controller
 
 import (
-	"net/http"
+  "net/http"
 
-	"github.com/zhulinwei/go-dc/pkg/util"
+  "github.com/zhulinwei/go-dc/pkg/util"
 
-	"github.com/gin-gonic/gin"
-	"github.com/zhulinwei/go-dc/pkg/model"
-	"github.com/zhulinwei/go-dc/pkg/service"
-	"github.com/zhulinwei/go-dc/pkg/util/log"
+  "github.com/gin-gonic/gin"
+  "github.com/zhulinwei/go-dc/pkg/model"
+  "github.com/zhulinwei/go-dc/pkg/service"
+  "github.com/zhulinwei/go-dc/pkg/util/log"
 )
 
 type IUserController interface {
-	SaveUser(ctx *gin.Context)
-	QueryUserByName(ctx *gin.Context)
-	UpdateUserByName(ctx *gin.Context)
-	RemoveUserByName(ctx *gin.Context)
+  SaveUser(ctx *gin.Context)
+  QueryUserByName(ctx *gin.Context)
+  UpdateUserByName(ctx *gin.Context)
+  RemoveUserByName(ctx *gin.Context)
 }
 
 type UserController struct {
-	userService service.IUserService
+  userService service.IUserService
 }
 
 func BuildUserController() IUserController {
-	return UserController{
-		userService: service.BuildUserService(),
-	}
+  return UserController{
+    userService: service.BuildUserService(),
+  }
 }
 
 // Create
 func (ctrl UserController) SaveUser(ctx *gin.Context) {
   // 解析前端数据
-	var user model.UserRequest
-	if err := ctx.ShouldBind(&user); err != nil {
-		log.Error("gin bind user error", log.String("error", err.Error()))
-		ctx.JSON(http.StatusBadRequest, model.Response{Code: -1, Msg: util.ParserErrorMsg(err)})
-		return
-	}
-	// 调用服务层逻辑
-	saveID := ctrl.userService.SaveUser(user)
-	// 返回处理结果
-	ctx.JSON(http.StatusOK, model.Response{Code: 0, Msg: "success", Data: gin.H{"id": saveID}})
+  var user model.UserRequest
+  if err := ctx.ShouldBind(&user); err != nil {
+    log.Error("gin bind user error", log.String("error", err.Error()))
+    ctx.JSON(http.StatusBadRequest, model.Response{Code: -1, Msg: util.ParserErrorMsg(err)})
+    return
+  }
+  // 调用服务层逻辑
+  saveID := ctrl.userService.SaveUser(user)
+  // 返回处理结果
+  ctx.JSON(http.StatusOK, model.Response{Code: 0, Msg: "success", Data: gin.H{"id": saveID}})
 }
 
 // Read
 func (ctrl UserController) QueryUserByName(ctx *gin.Context) {
   name := ctx.Param("name")
-	// 可以进一步判断user是否为nil值
-	user, err := ctrl.userService.QueryUserByName(name)
-	if err != nil {
-		log.Error("query user fail", log.String("error", err.Error()))
-		ctx.JSON(http.StatusInternalServerError, nil)
-		return
-	}
-	ctx.JSON(http.StatusOK, model.Response{Code: 0, Msg: "success", Data: user})
+  // 可以进一步判断user是否为nil值
+  user, err := ctrl.userService.QueryUserByName(name)
+  if err != nil {
+    log.Error("query user fail", log.String("error", err.Error()))
+    ctx.JSON(http.StatusInternalServerError, nil)
+    return
+  }
+  ctx.JSON(http.StatusOK, model.Response{Code: 0, Msg: "success", Data: user})
 }
 
 // Update
@@ -385,9 +385,9 @@ func (ctrl UserController) RemoveUserByName(ctx *gin.Context) {}
 package service
 
 import (
-	"github.com/zhulinwei/go-dc/pkg/cache"
-	"github.com/zhulinwei/go-dc/pkg/dao"
-	"github.com/zhulinwei/go-dc/pkg/model"
+  "github.com/zhulinwei/go-dc/pkg/cache"
+  "github.com/zhulinwei/go-dc/pkg/dao"
+  "github.com/zhulinwei/go-dc/pkg/model"
 )
 
 type IUserService interface {
@@ -396,27 +396,27 @@ type IUserService interface {
 }
 
 type UserService struct {
-	UserDao dao.IUserDao
+  UserDao dao.IUserDao
 }
 
 func BuildUserService() IUserService {
-	return UserService{
-		UserDao: dao.BuildUserDao(),
-	}
+  return UserService{
+    UserDao: dao.BuildUserDao(),
+  }
 }
 
 // Save user
 func (service UserService) SaveUser(user model.UserRequest) interface{} {
-	if result, err := service.UserDao.SaveUser(user); err != nil {
-		return nil
-	} else {
-		return result.InsertedID
-	}
+  if result, err := service.UserDao.SaveUser(user); err != nil {
+    return nil
+  } else {
+    return result.InsertedID
+  }
 }
 
 // Query User
 func (service UserService) QueryUserByName(name string) (*model.UserDB, error) {
-	return service.UserDao.QueryUserByName(name)
+  return service.UserDao.QueryUserByName(name)
 }
 ```
 
@@ -446,35 +446,35 @@ mockgen -destination pkg/dao/mock/user_mock.go -source pkg/dao/user.go
 package service
 
 import (
-	"testing"
+  "testing"
 
-	"github.com/golang/mock/gomock"
-	"github.com/stretchr/testify/assert"
-	mockDao "github.com/zhulinwei/go-dc/pkg/dao/mock"
-	"github.com/zhulinwei/go-dc/pkg/model"
-	"go.mongodb.org/mongo-driver/bson/primitive"
-	"go.mongodb.org/mongo-driver/mongo"
+  "github.com/golang/mock/gomock"
+  "github.com/stretchr/testify/assert"
+  mockDao "github.com/zhulinwei/go-dc/pkg/dao/mock"
+  "github.com/zhulinwei/go-dc/pkg/model"
+  "go.mongodb.org/mongo-driver/bson/primitive"
+  "go.mongodb.org/mongo-driver/mongo"
 )
 
 func TestUserService_SaveUser(t *testing.T) {
-	// mock data
-	mockTest := model.UserRequest{Age: 18, Name: "tony"}
-	mockObjectId := primitive.NewObjectID()
+  // mock data
+  mockTest := model.UserRequest{Age: 18, Name: "tony"}
+  mockObjectId := primitive.NewObjectID()
 
-	// mock request
-	mockCtrl := gomock.NewController(t)
-	defer mockCtrl.Finish()
-  mockUserDao := mockDao.NewMockIUserDao(mockCtrl)
-  // 对 UserDao 的 SaveUser 方法进行打桩，使其可以返回预期结果
-  mockUserDao.EXPECT().SaveUser(mockTest).Return(&mongo.InsertOneResult{InsertedID: mockObjectId})
-  // 将 mockUserDao 注入到 UserService 中，以替换原始 UserDao 逻辑
-	mockUserService := UserService{
-		UserDao: mockUserDao,
-	}
-	realResult := mockUserService.SaveUser(mockTest)
+  // mock request
+  mockCtrl := gomock.NewController(t)
+  defer mockCtrl.Finish()
+   mockUserDao := mockDao.NewMockIUserDao(mockCtrl)
+   // 对 UserDao 的 SaveUser 方法进行打桩，使其可以返回预期结果
+   mockUserDao.EXPECT().SaveUser(mockTest).Return(&mongo.InsertOneResult{InsertedID: mockObjectId})
+   // 将 mockUserDao 注入到 UserService 中，以替换原始 UserDao 逻辑
+  mockUserService := UserService{
+  	UserDao: mockUserDao,
+  }
+  realResult := mockUserService.SaveUser(mockTest)
 
-	// assert result
-	assert.Equal(t, mockObjectId, realResult)
+  // assert result
+  assert.Equal(t, mockObjectId, realResult)
 }
 ```
 </details>
@@ -494,53 +494,53 @@ mockgen -destination pkg/service/mock/user_mock.go -source pkg/service/user.go
 package controller
 
 import (
-	"encoding/json"
-	"io/ioutil"
-	"net/http/httptest"
-	"testing"
+  "encoding/json"
+  "io/ioutil"
+  "net/http/httptest"
+  "testing"
 
-	"github.com/gin-gonic/gin"
-	"github.com/golang/mock/gomock"
-	"github.com/stretchr/testify/assert"
-	"github.com/zhulinwei/go-dc/pkg/model"
-	mockService "github.com/zhulinwei/go-dc/pkg/service/mock"
-	"go.mongodb.org/mongo-driver/bson/primitive"
+  "github.com/gin-gonic/gin"
+  "github.com/golang/mock/gomock"
+  "github.com/stretchr/testify/assert"
+  "github.com/zhulinwei/go-dc/pkg/model"
+  mockService "github.com/zhulinwei/go-dc/pkg/service/mock"
+  "go.mongodb.org/mongo-driver/bson/primitive"
 )
 
 func TestUserController_QueryUserByName(t *testing.T) {
-	//mock data
-	const mockUrl = "/:name"
-	const mockName = "tony"
-	const mockMethod = "GET"
-	mockObjectId := primitive.NewObjectID()
-
-	// mock request
-	route := gin.Default()
-
-	mockCtrl := gomock.NewController(t)
-	defer mockCtrl.Finish()
-
-	mockUserService := mockService.NewMockIUserService(mockCtrl)
-	mockUserService.EXPECT().QueryUserByName(mockName).Return(&model.UserDB{ID: mockObjectId, Age: 18, Name: mockName})
-
-	mockUserController := UserController{
-		userService: mockUserService,
-	}
-	route.GET(mockUrl, mockUserController.QueryUserByName)
-	request := httptest.NewRequest(mockMethod, "/tony", nil)
-	recorder := httptest.NewRecorder()
-	route.ServeHTTP(recorder, request)
-
-	body, err := ioutil.ReadAll(recorder.Result().Body)
-	assert.NoError(t, err)
-
-	var result model.UserDB
-	err = json.Unmarshal(body, &result)
-	assert.NoError(t, err)
-
-	// assert result
-	assert.NoError(t, err)
-	assert.Equal(t, result.Name, mockName)
+  //mock data
+  const mockUrl = "/:name"
+  const mockName = "tony"
+  const mockMethod = "GET"
+  mockObjectId := primitive.NewObjectID()
+  
+  // mock request
+  route := gin.Default()
+  
+  mockCtrl := gomock.NewController(t)
+  defer mockCtrl.Finish()
+  
+  mockUserService := mockService.NewMockIUserService(mockCtrl)
+  mockUserService.EXPECT().QueryUserByName(mockName).Return(&model.UserDB{ID: mockObjectId, Age: 18, Name: mockName})
+  
+  mockUserController := UserController{
+  	userService: mockUserService,
+  }
+  route.GET(mockUrl, mockUserController.QueryUserByName)
+  request := httptest.NewRequest(mockMethod, "/tony", nil)
+  recorder := httptest.NewRecorder()
+  route.ServeHTTP(recorder, request)
+  
+  body, err := ioutil.ReadAll(recorder.Result().Body)
+  assert.NoError(t, err)
+  
+  var result model.UserDB
+  err = json.Unmarshal(body, &result)
+  assert.NoError(t, err)
+  
+  // assert result
+  assert.NoError(t, err)
+  assert.Equal(t, result.Name, mockName)
 }
 ```
 </details>
