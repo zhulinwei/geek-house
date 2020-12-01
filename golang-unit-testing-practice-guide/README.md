@@ -135,7 +135,7 @@ ok      unittest 0.013s
 #### 2.3.1 gomock
 `gomock`是 Golang 官方的维护的测试框架，可以对基于接口的模块提供很好的 mock 支持，通过它的概述我们可以快速了解到它的使用方式：
 
-![](images/gomock.png)
+![](images/gomock.jpg)
 即：
 
 第一步：逻辑代码中定义好你需要接口；
