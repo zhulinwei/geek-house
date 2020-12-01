@@ -31,10 +31,10 @@ AIR，即 Automatic（自动化）、Indepenndent（独立性）、Repleatable�
 
 那么我们花这么大力气引入单元测试能解决什么痛点，带来什么价值呢？
 
-在笔者看来，单元测试可以带来代码质量提升、低成本确认问题、缩短上线流程等提高人效的价值，毕竟研发事无巨细地检查每一个功能，也不如程序自动完成来得全面和准确。另外减少低级错误导致测试人员与研发人员之间的信任问题，也可以让测试投出更多宝贵的时间参与到产品讨论和需求评审。
+在笔者看来，单元测试可以带来代码质量提升、低成本确认问题、缩短上线流程等提高人效的价值，毕竟研发事无巨细地检查每一个功能，也不如程序自动完成来得全面和准确。另外减少低级错误导致测试人员与研发人员之间的信任问题，也可以让测试人员投出更多宝贵的时间参与到产品讨论和需求评审等更加重要的地方去。
 
 #### 1.4.1 提升代码质量
-好的代码，可测性是一个衡量的标准，不好测试的代码，其本身的抽象性、模块性、可维护性都可能存在问题。例如不符合单一职责、接口隔离等设计原则，或者依赖了全局，而可测试的代码，往往其质量相对会高一些。
+好的代码，可测性是一个衡量的标准，不好测试的代码，其本身的抽象性、模块性、可维护性都可能存在问题。例如不符合单一职责、接口隔离等设计原则，或者依赖了全局。而可测试的代码，往往其质量相对会高一些。
 
 我们来个反面例子看看不好测的伪代码长啥样：
 
@@ -54,15 +54,16 @@ func (s *Service) QueryUser(name string) {
 }
 ```
 
-这种依赖关系是强耦合的代码，你在对它进行单元测试的时候会发现，即使你将接口 IUserDao 的模拟对象（mock）创建出来，也没有办法将 mock 对象放入 QueryUser 进行替换。反过来，如果你的单元测试很容易编写，测试性好，也能说明代码质量相对较高。
+这种依赖关系是强耦合的代码，你在对它进行单元测试的时候会发现，即使你将接口 IUserDao 的模拟对象（mock）创建出来，也没有办法将 mock 对象放入 QueryUser 进行替换。反过来，如果你的单元测试很容易编写，可测性好，也能说明代码质量相对较高。
 
 #### 1.4.2 低成本确认问题
 单元测试最大的价值在于它们的反馈的速度，越早发现缺陷修复成本越低，而且业务迭代和代码重构的过程中单元测试可以确保代码的正确性，降低各种修改和重构的风险，也能让后续的集成测试和验收测试更容易通过。
 
+那么单元测试该怎么写呢？笔者用个非常简单的示例带领大家入门。
 
 ### 1.5 入门示例
 
-笔者用个非常简单的示例带大家入门，假设我们存在一个负责计算两数总和的 Add 函数：
+假设我们存在一个负责计算两数总和的 Add 函数：
 
 ```golang
 // main.go
@@ -99,7 +100,8 @@ func TestAdd(t *testing.T) {
 }
 ```
 
-我们在终端项目下运行 `go test -v` 就可以看到测试结果：
+最后我们在终端项目下运行 `go test -v` 就可以看到测试结果：
+
 ```text
 === RUN   TestAdd
 --- PASS: TestAdd (0.00s)
@@ -125,7 +127,7 @@ ok      unittest 0.013s
 - mock:
 - fake:
 
-在 Golang 中我们并不需要自己花太多精力来构造这些破除依赖的资源，通过学习测试框架可以帮助我们快速地生成常用的 stub 和 mock 等资源。
+而在 Golang 中我们并不需要自己花太多精力来构造这些破除依赖的资源，通过学习测试框架可以帮助我们快速地生成常用的 stub 和 mock 等资源。
 
 ### 2.3 测试框架
 这里笔者推荐几个好用的测试框架获工具，包括 `gomock`、`monkey` 和 `stretchr/testify`等。
@@ -149,7 +151,6 @@ ok      unittest 0.013s
 
 
 #### 2.3.3 stretchr/testify
-
 官方没有提供到良好的断言（assert）包，而社区的`stretchr/testify`可以提供打印友好、易于阅读的的断言工具，详情可以参考它的[代码仓库](https://github.com/stretchr/testify)。
 
 ### 2.4 编码技巧
@@ -192,7 +193,7 @@ func (NewUserDaoMock) QueryUserFromDB(name string) User {
 }
 ```
 
-上层在使用时只关心抽象接口 IUserDao，而不是具体实现 UserDao，这样我们的单元测试就可以很轻松地使用 UserDaoMock 对象完成对 UserDao 的 mock 动作，进而开展后续的操作。
+上层在使用时只关心抽象接口 IUserDao，而不是具体实现 UserDao，这样我们的单元测试就可以很轻松地使用 UserDaoMock 对象完成对 UserDao 的 mock 动作，进而开展后续的操作。更重要的一点是这种编码习惯可以让我们的测试框架`gomock`根据抽象接口 IUserDao 自动帮我们生成 UserDao 的 mock 文件，方面快捷。
 
 
 #### 2.4.2 依赖注入
@@ -434,7 +435,7 @@ go get -u github.com/golang/mock/gomock
 go get -u github.com/golang/mock/mockgen
 ```
 
-使用 gomock 的脚手架工具 mockgen 生成 Dao 文件对应的 Mock 文件：
+使用 gomock 的脚手架工具 mockgen 生成 Dao 文件对应的 mock 文件：
 ```shell   
 mockgen -destination pkg/dao/mock/user_mock.go -source pkg/dao/user.go
 ```
@@ -481,7 +482,7 @@ func TestUserService_SaveUser(t *testing.T) {
 
 针对控制层文件的逻辑我们也是一样的处理思路，以 QueryUserByName 方法为例：方法内部调用的 Service 操作就是它的依赖，要对依赖进行打桩和 mock 处理，然后测试 QueryUserByName 方法能否正确校验参数和返回对应的结果或响应码。
 
-使用 gomock 的脚手架工具 mockgen 生成 Service 文件对应的 Mock 文件：
+使用 gomock 的脚手架工具 mockgen 生成 Service 文件对应的 mock 文件：
 ```shell   
 mockgen -destination pkg/service/mock/user_mock.go -source pkg/service/user.go
 ```
