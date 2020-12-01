@@ -95,7 +95,7 @@ func TestAdd(t *testing.T) {
   sum := Add(mockNum1, mockNum2)
 
   // 断言
-	assert.Equal(t, mockExpected , sum)
+  assert.Equal(t, mockExpected , sum)
 }
 ```
 
@@ -513,16 +513,16 @@ func TestUserController_QueryUserByName(t *testing.T) {
   const mockName = "tony"
   const mockMethod = "GET"
   mockObjectId := primitive.NewObjectID()
-  
+
   // mock request
   route := gin.Default()
-  
+
   mockCtrl := gomock.NewController(t)
   defer mockCtrl.Finish()
-  
+
   mockUserService := mockService.NewMockIUserService(mockCtrl)
   mockUserService.EXPECT().QueryUserByName(mockName).Return(&model.UserDB{ID: mockObjectId, Age: 18, Name: mockName})
-  
+
   mockUserController := UserController{
   	userService: mockUserService,
   }
@@ -530,14 +530,14 @@ func TestUserController_QueryUserByName(t *testing.T) {
   request := httptest.NewRequest(mockMethod, "/tony", nil)
   recorder := httptest.NewRecorder()
   route.ServeHTTP(recorder, request)
-  
+
   body, err := ioutil.ReadAll(recorder.Result().Body)
   assert.NoError(t, err)
-  
+
   var result model.UserDB
   err = json.Unmarshal(body, &result)
   assert.NoError(t, err)
-  
+
   // assert result
   assert.NoError(t, err)
   assert.Equal(t, result.Name, mockName)
