@@ -1,11 +1,13 @@
 # Golang单元测试实践指南
 
-## 一、基础
+## 一、背景
 
-### 1.1 概念
+## 二、基础
+
+### 2.1 概念
 单元测试是指对软件中最小可测试单元在于程序其他部分相隔离的情况下进行检查和校验。单元测试是白盒测试，通常由开发来完成，测试的对象可以是函数，也可以是类，而测试的目标是来检查程序是否按照预期的逻辑执行。好的单元测试会遵守 AIR 原则，以便让测试用例更加地复合规范。
 
-### 1.2 AIR原则
+### 2.2 AIR原则
 AIR，即 Automatic（自动化）、Indepenndent（独立性）、Repleatable（可重复）的简写：
 - 自动化：单元测试应该是自动执行，自动校验，自动给出结果，若需要人工检查（如将结果输出到控制台）的单元测试，不是好的单元测试；
 - 独立性：单元测试应该是可以独立运行的，测试用例之间无依赖和执行次序，用例内部对外部资源也无依赖；
@@ -19,21 +21,21 @@ AIR，即 Automatic（自动化）、Indepenndent（独立性）、Repleatable�
 
 你可能会有疑问，如果说不能，那做的都是些什么测试呢？实际上你做的是集成测试。
 
-### 1.3 集成测试
+### 2.3 集成测试
 
 集成测试的测试对象是整个系统或者某个功能模块，比如测试用户注册、登录功能是否正常，是一种端到端的测试。如果测试用例使用到真实的系统时间、真实的文件系统、真实的数据库，亦或者是其他真实的外部依赖，那么该测试已经进入到了集成测试的领域。
 
 <img src="./images/unittest.png" width = "400" alt="图片名称" align=center style="margin: 0 auto"/>
 
-对集成测试以及后续的其他测试，本节不做过多展开，有兴趣的同学可以自行学习。
+在集群测试中，代码对外部资源存在依赖关系，尽管代码本身的逻辑是完全正确的，但如果依赖不完善，则可能会导致测试的失败，我们需要认识到这个问题。对集成测试以及后续的其他测试，本节不做过多展开，有兴趣的同学可以自行学习。
 
-### 1.4 价值意义
+### 2.4 价值意义
 
 那么我们花这么大力气引入单元测试能解决什么痛点，带来什么价值呢？
 
-在笔者看来，单元测试可以带来代码质量提升、低成本确认问题、缩短上线流程等提高人效的价值，毕竟研发事无巨细地检查每一个功能，也不如程序自动完成来得全面和准确。另外减少低级错误导致测试人员与研发人员之间的信任问题，也可以让测试人员投出更多宝贵的时间参与到产品讨论和需求评审等更加重要的地方去。
+在笔者看来，单元测试可以带来代码质量提升、低成本确认问题、缩短上线流程等提高人效的价值，毕竟研发事无巨细地检查每一个功能，也不如程序自动完成来得全面和准确。另外可以减少低级错误导致测试人员与研发人员之间的信任问题，也可以让测试人员投出更多宝贵的时间参与到产品讨论和需求评审等更加重要的地方去。
 
-#### 1.4.1 提升代码质量
+#### 2.4.1 提升代码质量
 好的代码，可测性是一个衡量的标准，不好测试的代码，其本身的抽象性、模块性、可维护性都可能存在问题。例如不符合单一职责、接口隔离等设计原则，或者依赖了全局。而可测试的代码，往往其质量相对会高一些。
 
 我们来个反面例子看看不好测的伪代码长啥样：
@@ -56,12 +58,12 @@ func (s *Service) QueryUser(name string) {
 
 这种依赖关系是强耦合的代码，你在对它进行单元测试的时候会发现，即使你将接口 IUserDao 的模拟对象（mock）创建出来，也没有办法将 mock 对象放入 QueryUser 进行替换。反过来，如果你的单元测试很容易编写，可测性好，也能说明代码质量相对较高。
 
-#### 1.4.2 低成本确认问题
+#### 2.4.2 低成本确认问题
 单元测试最大的价值在于它们的反馈的速度，越早发现缺陷修复成本越低，而且业务迭代和代码重构的过程中单元测试可以确保代码的正确性，降低各种修改和重构的风险，也能让后续的集成测试和验收测试更容易通过。
 
 那么单元测试该怎么写呢？笔者用个非常简单的示例带领大家入门。
 
-### 1.5 入门示例
+### 2.5 入门示例
 
 假设我们存在一个负责计算两数总和的 Add 函数：
 
@@ -111,30 +113,30 @@ ok      unittest 0.013s
 
 练习完以上示例你就已经完成入门了，但接下来需要掌握更多的技巧，包括懂得识别依赖、明白如何破除依赖、掌握好用的测试框架再加上适当的编程技巧等，才能写出优秀的贴合实战的单元测试。
 
-## 二、进阶
+## 三、进阶
 
-### 2.1 识别依赖
+### 3.1 识别依赖
 在实际的项目中，我们的测试单元很可能存在对外部的依赖，而单元测试的 Indepenndent 原则要求测试用例应该要独立运行的，即我们只需要保证被测试的单元内部逻辑正确即可，不需要真正依赖外部资源，因此我们需要做的第一件事情就是识别依赖。
 
 常见的外部依赖项包括：文件I/O操作，如配置文件的读写；网络I/O，如外部HTTP接口调用、RPC调用、对数据库或者消息队列等资源的请求；又或者可以系统时间，项目中没有开发完成的模块等等。
 
 在识别依赖后，就应该考虑怎么破除外部依赖。
 
-### 2.2. 破除依赖
-常用的破除依赖的方法包括：间谍（spy）、存根（stub，也成为打桩）、模拟对象（mock）和伪对象（fake）等：
+### 3.2. 破除依赖
+破除依赖的方法很多，包括：间谍（spy）、存根（stub，也成为打桩）、模拟对象（mock）和伪对象（fake）等：
 - spy: 翻译成间谍或监视，它可以提供函数的调用信息，但是不会改变函数行为；
 - stub: 翻译成存根或打桩，用来完全替换目标函数的逻辑，使其按照你的期望返回结果；
 - mock: 翻译成模拟，通过组合 spy 和 stub 来替换掉一个完整的对象；
 - fake: 翻译成伪造，通过提供类似真实环境下的、简化版的对象来与程序交互；
 
-它们的概念非常相近，理解起来很容易混淆，笔者简单地做个总结：当我们想要验证被测函数是否被调用时可以考虑使用 spy；当我们希望替换掉某个单独的函数时可以考虑使用 stub；当我们希望替换掉整个对象的多个方法时，可以考虑使用 mock；当我们需要伪造数据库访问等操作时可以考虑使用 fake；
+它们的概念非常相近，理解起来很容易混淆，笔者简单地做个总结：当我们想要验证被测函数是否被调用时可以考虑使用 spy；当我们希望替换掉某个单独的函数时可以考虑使用 stub；当我们希望替换掉整个对象的多个方法时，可以考虑使用 mock；当我们需要伪造数据库访问等操作时可以考虑使用 fake。
 
 而在 Golang 中我们并不需要自己花太多精力来构造这些破除依赖的资源，通过学习测试框架可以帮助我们快速地生成常用的 stub 和 mock 等资源。
 
-### 2.3 测试框架
-这里笔者推荐几个好用的测试框架获工具，包括 `gomock`、`monkey` 和 `stretchr/testify`等。
+### 3.3 测试框架
+这里笔者推荐几个好用的测试框架或工具，包括 `gomock`、`monkey` 和 `stretchr/testify`等。
 
-#### 2.3.1 gomock
+#### 3.3.1 gomock
 `gomock`是 Golang 官方的维护的测试框架，可以对基于接口的模块提供很好的 mock 支持，通过它的概述我们可以快速了解到它的使用方式：
 
 ![](images/gomock.jpg)
@@ -148,17 +150,17 @@ ok      unittest 0.013s
 
 更多详情可以访问它的[使用文档](https://pkg.go.dev/github.com/golang/mock/gomock)和[代码仓库](https://github.com/golang/mock)。
 
-#### 2.3.2 monkey
+#### 3.3.2 monkey
 `monkey`框架通过在运行时重写执行文件来实现 stub 操作，该库存很久没有更新了且当前已经处于归档状态，但使用起来真的很方便，详情可以参考它的[代码仓库](https://github.com/bouk/monkey)。
 
 
-#### 2.3.3 stretchr/testify
+#### 3.3.3 stretchr/testify
 官方没有提供到良好的断言（assert）包，而社区的`stretchr/testify`可以提供打印友好、易于阅读的的断言工具，详情可以参考它的[代码仓库](https://github.com/stretchr/testify)。
 
-### 2.4 编码技巧
+### 3.4 编码技巧
 最后，如果一段代码我们很难为其编写单元测试，或者需要使用单元测试框架中很高级的特性，那往往意味着代码的设计存在问题。在这里笔者一般建议大家先掌握两个技巧：面向接口而非实现编程以及依赖注入。
 
-#### 2.4.1 面向接口而非实现编程
+#### 3.4.1 面向接口而非实现编程
 
 先谈一下对接口的理解：接口是对行为的一种抽象，相当于一组协议或者契约，表示 has-a 的关系，它是一种自上而下的设计思路，先设计接口，再考虑代码实现，解决的是解耦问题。将接口和实现分离，可以封装不稳定的实现，暴露稳定的接口，上游系统面向接口而非实现编程，这样即使实现发生变化的时候，调用方也基本不需要改动，以此来降低耦合和提高扩展性。
 
@@ -195,10 +197,9 @@ func (NewUserDaoMock) QueryUserFromDB(name string) User {
 }
 ```
 
-上层在使用时只关心抽象接口 IUserDao，而不是具体实现 UserDao，这样我们的单元测试就可以很轻松地使用 UserDaoMock 对象完成对 UserDao 的 mock 动作，进而开展后续的操作。更重要的一点是，这种编码习惯可以让我们的测试框架`gomock`根据抽象接口 IUserDao 自动生成 UserDao 的 mock 文件，方面快捷。
+上层在使用时只关心抽象接口 `IUserDao`，而不是具体实现 `UserDao`，这样我们的单元测试就可以很轻松地使用 `UserDaoMock` 对象完成对 `UserDao` 的 mock 动作，进而开展后续的操作。更重要的一点是，这种编码习惯可以让我们的测试框架`gomock`根据抽象接口 `IUserDao` 自动生成 `UserDao` 的 mock 文件，不需要我们手动实现例子中的 `UserDaoMock` 对象。
 
-
-#### 2.4.2 依赖注入
+#### 3.4.2 依赖注入
 依赖注入指的是不通过显式创建的方式（new）在类内部创建依赖类的对象，而是将依赖的对象在外部创建好之后，通过构造函数、函数传参等方式传递给类使用。在没有使用依赖注入框架的情况下，可以这样在 Golang 中实现依赖注入：
 
 ```golang
@@ -229,7 +230,7 @@ func NewUserService () {
 
 **使用依赖注入而不是显式创建依赖，是编写出可测性良好代码的关键一步**，后续的实践过程我们将继续探讨这个过程。
 
-## 三、实践
+## 四、实践
 说这么多，我们看看到底应该怎么做吧。现在假设我们存在一组 CRUD 的接口并按照常规 MVC 分层编码，伪代码如下：
 
 入口文件，主要是负责初始化路由：
@@ -354,9 +355,11 @@ func (ctrl UserController) SaveUser(ctx *gin.Context) {
     return
   }
   // 调用服务层逻辑
-  saveID := ctrl.userService.SaveUser(user)
-  // 返回处理结果
-  ctx.JSON(http.StatusOK, model.Response{Code: 0, Msg: "success", Data: gin.H{"id": saveID}})
+  if err := ctrl.userService.SaveUser(user); err != nil {
+    ctx.JSON(http.StatusInternalServerError, model.Response{Code: 1001, Msg: "save user fail"})
+    return
+  }
+  ctx.JSON(http.StatusOK, model.Response{Code: 0, Msg: "success"})
 }
 
 // Read
@@ -394,7 +397,7 @@ import (
 )
 
 type IUserService interface {
-  SaveUser(user model.UserRequest) interface{}
+  SaveUser(user model.UserRequest) error
   QueryUserByName(name string) (*model.UserDB, error)
 }
 
@@ -409,12 +412,9 @@ func BuildUserService() IUserService {
 }
 
 // Save user
-func (service UserService) SaveUser(user model.UserRequest) interface{} {
-  if result, err := service.UserDao.SaveUser(user); err != nil {
-    return nil
-  } else {
-    return result.InsertedID
-  }
+func (service UserService) SaveUser(user model.UserRequest) error {
+  _, err := service.UserDao.SaveUser(user)
+  return err
 }
 
 // Query User
@@ -425,24 +425,24 @@ func (service UserService) QueryUserByName(name string) (*model.UserDB, error) {
 
 </details>
 
-好吧，这个服务层文件的逻辑比较简单，我们看看怎么对它的 SaveUser 方法进行单元测试。
+好吧，这个服务层文件的逻辑比较简单，我们看看怎么对它的 `SaveUser` 方法进行单元测试。
 
-首先是识别依赖，在这里我们只需要根据 SaveUser 方法的输入来测试它的输出值是否复合我们的预期即可，而它内部调用的 Dao 操作就是它的外部依赖；接着我们需要对这个 Dao 操作进行打桩和 mock 处理，即直接假设 Dao 能返回我们所需的结果，或者假设 Dao 会抛出 err，然后来判断我们的 SaveUser 方法逻辑是否能复合预期。
+首先是识别依赖，在这里我们只需要根据 `SaveUser` 方法的输入来测试它的输出值是否复合我们的预期即可，而它内部调用的 `UserDao` 对象就是它的外部依赖；接着我们需要对这个 `UserDao` 对象进行打桩和 mock 处理，即直接假设 `UserDao` 对象能返回我们所需的结果，或者假设 `UserDao` 对象会抛出错误，然后来判断我们的 `SaveUser` 方法逻辑是否能复合预期。
 
-我们使用 Golang 的官方测试框架`gomock`来进行打桩和 mock。
+我们使用 Golang 的官方测试框架 `gomock` 来进行打桩和生成模拟对象。
 
-下载gomock：
+下载 `gomock`：
 ```shell
 go get -u github.com/golang/mock/gomock
 go get -u github.com/golang/mock/mockgen
 ```
 
-使用 gomock 的脚手架工具 mockgen 生成 Dao 文件对应的 mock 文件：
+使用 `gomock` 的脚手架工具 `mockgen` 生成 Dao 文件对应的 mock 文件：
 ```shell   
 mockgen -destination pkg/dao/mock/user_mock.go -source pkg/dao/user.go
 ```
 
-针对 SaveUser 方法编写单元测试：
+针对 `SaveUser` 方法编写单元测试：
 <details>
 
 ```golang
@@ -467,29 +467,28 @@ func TestUserService_SaveUser(t *testing.T) {
   // mock request
   mockCtrl := gomock.NewController(t)
   defer mockCtrl.Finish()
-   mockUserDao := mockDao.NewMockIUserDao(mockCtrl)
-   // 对 UserDao 的 SaveUser 方法进行打桩，使其可以返回预期结果
-   mockUserDao.EXPECT().SaveUser(mockTest).Return(&mongo.InsertOneResult{InsertedID: mockObjectId})
-   // 将 mockUserDao 注入到 UserService 中，以替换原始 UserDao 逻辑
+  mockUserDao := mockDao.NewMockIUserDao(mockCtrl)
+  mockUserDao.EXPECT().SaveUser(mockTest).Return(&mongo.InsertOneResult{InsertedID: mockObjectId}, nil)
   mockUserService := UserService{
-  	UserDao: mockUserDao,
+    UserDao: mockUserDao,
   }
-  realResult := mockUserService.SaveUser(mockTest)
+  err := mockUserService.SaveUser(mockTest)
 
   // assert result
-  assert.Equal(t, mockObjectId, realResult)
+  assert.NoError(t, err)
 }
+
 ```
 </details>
 
-针对控制层文件的逻辑我们也是一样的处理思路，以 QueryUserByName 方法为例：方法内部调用的 Service 操作就是它的依赖，要对依赖进行打桩和 mock 处理，然后测试 QueryUserByName 方法能否正确校验参数和返回对应的结果或响应码。
+针对控制层文件的逻辑我们也是一样的处理思路，以 `QueryUserByName` 方法为例：方法内部调用的 `UserService` 对象就是它的依赖，要对依赖进行打桩和 mock 处理，然后测试 `QueryUserByName` 方法能否正确校验参数和返回对应的结果或响应码。
 
-使用 gomock 的脚手架工具 mockgen 生成 Service 文件对应的 mock 文件：
+使用 `gomock` 的脚手架工具 `mockgen` 生成 Service 文件对应的 mock 文件：
 ```shell   
 mockgen -destination pkg/service/mock/user_mock.go -source pkg/service/user.go
 ```
 
-但控制层的单元测试会相对麻烦一点，因为我们需要启动一个测试用的 HTTP Server 来响应我们的请求。避免使用真实项目中的 HTTP Server 的原因在于它会带来不必要的依赖项，而 mock 掉 HTTP Server 会方便我们的测试进行。针对 QueryUserByName 方法编写单元测试如下：
+但控制层的单元测试会相对麻烦一点，因为我们需要启动一个测试用的 HTTP Server 来响应我们的请求。避免使用真实项目中的 HTTP Server 的原因在于它会带来不必要的依赖项，而 mock 掉 HTTP Server 会方便我们的测试进行。针对 `QueryUserByName` 方法编写单元测试如下：
 
 <details>
 
@@ -517,40 +516,38 @@ func TestUserController_QueryUserByName(t *testing.T) {
   const mockMethod = "GET"
   mockObjectId := primitive.NewObjectID()
 
-  // mock request
-  route := gin.Default()
-
   mockCtrl := gomock.NewController(t)
   defer mockCtrl.Finish()
-
   mockUserService := mockService.NewMockIUserService(mockCtrl)
-  mockUserService.EXPECT().QueryUserByName(mockName).Return(&model.UserDB{ID: mockObjectId, Age: 18, Name: mockName})
-
+  mockUserService.EXPECT().QueryUserByName(mockName).Return(&model.UserDB{ID: mockObjectId, Age: 18, Name: mockName}, nil)
   mockUserController := UserController{
-  	userService: mockUserService,
+    userService: mockUserService,
   }
+
+  route := gin.Default()
   route.GET(mockUrl, mockUserController.QueryUserByName)
   request := httptest.NewRequest(mockMethod, "/tony", nil)
   recorder := httptest.NewRecorder()
   route.ServeHTTP(recorder, request)
-
   body, err := ioutil.ReadAll(recorder.Result().Body)
-  assert.NoError(t, err)
 
-  var result model.UserDB
+  var result struct {
+    Data model.UserDB
+  }
   err = json.Unmarshal(body, &result)
   assert.NoError(t, err)
 
   // assert result
   assert.NoError(t, err)
-  assert.Equal(t, result.Name, mockName)
+  assert.Equal(t, http.StatusOK, recorder.Code)
+  assert.Equal(t, mockName, result.Data.Name)
 }
 ```
 </details>
 
-更多详情可以参考笔者的[练习项目](https://github.com/zhulinwei/go-dc)
+另外如果有需要对 Dao 层也进行单元测试的话，可以使用类似[go-sqlmock](https://github.com/DATA-DOG/go-sqlmock)等工具直接 mock 掉 真实数据库，然后对sql执行语句进行打桩，更多详情可以参考笔者的[练习项目](https://github.com/zhulinwei/go-dc)
 
-## 四、思考
+## 五、思考
 
 至此，希望以上知识能帮助你更好地掌握到如何在 Golang 中使用单元测试。同时相信你也会发现，引入单元测试后必不可少地增加了维护成本，笔者也留下几个思考题，欢迎留言评论：
 
