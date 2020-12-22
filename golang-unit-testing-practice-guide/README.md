@@ -201,7 +201,7 @@ func (NewUserDaoMock) QueryUserFromDB(name string) User {
 上层在使用时只关心抽象接口 `IUserDao`，而不是具体实现 `UserDao`，这样我们的单元测试就可以很轻松地使用 `UserDaoMock` 对象完成对 `UserDao` 的 mock 动作，进而开展后续的操作。更重要的一点是，这种编码习惯可以让我们的测试框架`gomock`根据抽象接口 `IUserDao` 自动生成 `UserDao` 的 mock 文件，不需要我们手动实现例子中的 `UserDaoMock` 对象。
 
 #### 3.4.2 依赖注入
-依赖注入指的是不通过显式创建的方式（new）在类内部创建依赖类的对象，而是将依赖的对象在外部创建好之后，通过构造函数、函数传参等方式传递给类使用。在没有使用依赖注入框架的情况下，可以这样在 Golang 中实现依赖注入：
+依赖注入指的是不通过显式创建的方式（new）在类内部创建依赖类的对象，而是将依赖的对象在外部创建好之后，通过构造函数、工厂方法、属性 Get/Set 等方式传递给类使用。在没有使用依赖注入框架的情况下，可以这样在 Golang 中实现依赖注入：
 
 ```golang
 type UserService struct {
