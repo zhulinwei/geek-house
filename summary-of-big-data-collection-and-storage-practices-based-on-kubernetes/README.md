@@ -13,6 +13,7 @@
 ### 2.1 Docker日志管理
 
 我们的应用服务都运行在 Docker 容器中，Docker 的日志有两种：dockerd 运行时的引擎日志和容器内服务产生的容器日志。在这里我们不用关心引擎日志，容器日志是指到达标准输出（stdout）和标准错误输出（stderr）的日志，其他来源的日志不归 Docker 管理，而 Docker 将所有容器打到 stdout 和 stderr 的日志通过日志驱动统一重定向到某个地方。Docker 支持的日志驱动有很多，比如 local、json-file、syslog、journald 等等，不同的日志驱动可以将日志重定向到不同的地方。Docker 以热插拔的方式实现日志不同目的地的输出，体现了管理的灵活性。其中默认的日志驱动是 json-file，该驱动将日志以 json 的形式重定向存储到本地磁盘，其存储格式为：/var/lib/docker/containers/<container-id>/<container-id>-json.log。笔者画了一张简易的流转图：
+
 ![](images/docker_logging.jpg)
 
 官方支持的日志驱动很多，详情看可以自行查阅 [Docker Containers Logging](https://docs.docker.com/config/containers/logging/configure)。我们可以通过 docker info | grep Loggin 命令查看 Docker 的日志驱动配置，也可以通过 --log-driver 或者编写 /etc/docker/daemon.json 文件配置Docker容器的驱动：
@@ -42,6 +43,7 @@
 在使用 systemd 机制的服务器上，kubelet 和容器运行时将日志写入到 journald；如果没有 systemd，他们将日志写到 /var/log 目录的 .log 文件中。容器中的系统组件通常将日志写到 /var/log 目录，在 kubeadm 安装的集群中它们以静态 Pod 的形式运行在集群中，因此日志一般在 /var/log/pods 目录下。
 
 需要强调的一点是，对于应用 POD 日志 Kuberntes 并不管理日志的轮转策略，且日志的存储都是基于 Docker 的日志管理策略进行。在默认的日志驱动中，kubelet 会为每个容器的日志创建一个软链接，软链接存储路径为：/var/log/containers/，软链接会链接到 /var/log/pods/ 目录下相应 pod 目录的容器日志，被链接的日志文件也是软链接，最终链接到 Docker 容器引擎的日志存储目录：即/var/lib/docker/container 下相应容器的日志。这些软链接文件名称含有 k8s 相关信息，比如：Pod id，名字空间，容器 ID 等信息，这就为日志收集提供了很大的便利。简图如下：
+
 ![](images/pod_logging.jpg)
 
 
@@ -53,10 +55,12 @@
 - Fluent Bit：被设计为在高度受限的计算能力和减少的开销（内存和CPU）成为高度关注的分布式计算环境中运行，因此它非常的轻巧（KB级别）和高性能，适合做日志收集，处理和转发，但不适用于日志聚合；
 
 我们用官方的一张图来对比它们的差异：
+
 ![](images/fluentd_vs_fluentbit.png)
 
 
 Fluend 和 FluenBit 都有着相似的数据流处理方式，包括 Input、Parse、Filter、Buffer、Routing 和 Ouput 等组件，官方图如下：
+
 ![](images/fluentbit_route.png)
 
 - Input: 提供了多种的输入插件用于收集不同来源的信息，如日志文件或者操作系统信息等；
@@ -69,6 +73,7 @@ Fluend 和 FluenBit 都有着相似的数据流处理方式，包括 Input、Par
 ### 四、架构篇
 
 由容器引擎或 runtime 提供的原生功能通常不足以满足完整的日志记录需求，当发生容器崩溃、pod 被逐出或节点宕机等情况，如果仍然想访问到应用日志，那么日志就应该具有独立的存储和生命周期。我们利用容器化后的应用写入 stdout 和 stderr 的任何数据，都会被容器引擎捕获并被重定向到某个位置的特性，使用日志转发器 FluentBit 负责采集日志并将数据推送到日志聚合器 Fluentd 后，再由 Fluentd 负责聚合和存储数据至 AWS S3 中。由于日志转发器必须在每个节点上运行，因此它可以用 DaemonSet 副本，而日志聚合器则可以按需扩容缩容，因此我们使用 Deployment 来部署。笔者简单画的架构图如下：
+
 ![](images/logging_design.jpg)
 
 ### 五、实践篇
