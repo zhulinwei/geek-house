@@ -34,13 +34,12 @@ kubectl create -f pod.yaml
 稍等片刻我们可以通过执行命令`kebectl get pods`便可看到以下结果：
 ```
 NAME                      READY     STATUS    RESTARTS   AGE
-pod_name                  2/2       Running   0          1s
+name                  2/2       Running   0          1s
 ```
-好奇心重的同学可能会问，`kubectl create`从执行到`Pod`会创建完成，这中间件到底发生了什么呢？整个生命周期在流转的过程中经过了哪些组件？让我们从`kubectl`说起...
+那从`kubectl create`被执行，到`Pod`的创建完成，这中间件到底发生了什么呢？整个生命周期在流转的过程中经过了哪些组件？让我们从`kubectl`说起...
 
 ## kubectl
-
-kubectl是Kubernetes集群的命令行工具，在类Unix系统中我们可以在`~/.kube/config`找到kubectl的配置文件，这个配置文件被称为kubeconfig。kubectl使用kubeconfig来组织集群、用户、命名空间和身份认证等信息。当然我们也可以通过设置环境变量`KUBECONFIG`或者使用kubectl时带上参数`--kubeconfig`来指定其他的配置文件，且kubectl识别kubeconfig的顺序依次为：`--kubeconfig`、`KUBECONFIG`、`~/.kube/config`。
+kubectl 是 Kubernetes 集群的命令行工具，当我们执行`kubectl create`命令的时候，kubectl 会进行基本的客户端校验操作，包括对创建资源的检查或者创建文本的格式等内容进行校验，随后会进行身份认证。在类Unix系统中我们可以在`~/.kube/config`找到 kubectl 的配置文件，这个配置文件被称为kubeconfig。kubectl 使用 kubeconfig 来组织集群、用户、命名空间和身份认证等信息。当然我们也可以通过设置环境变量`KUBECONFIG`或者使用 kubectl 时带上参数`--kubeconfig`来指定其他的配置文件，且kubectl识别kubeconfig的顺序依次为：`--kubeconfig`、`KUBECONFIG`、`~/.kube/config`。
 
 我们来看一下kebuconfig文件的内容：
 
@@ -64,7 +63,9 @@ users:                  # 用户信息
   user:
     client-certificate-data: LS0tLS1CRUdJ...
 ```
-由此可以看出，keconfig中有三个关键的字段：集群信息、上下文和用户信息。
+由此可以看出，kubeconfig 中有三个关键的字段：集群信息、上下文和用户信息。
+
+kubectl 会根据当前上下文确定要操作的集群以及根据用户的信息完成身份认证，随后向 kube-api-server 发送 HTTP 请求，开始完成 Pod 的创建过程。
 
 ## kube-api-server
 
