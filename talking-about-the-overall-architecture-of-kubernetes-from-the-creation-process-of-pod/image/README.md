@@ -39,7 +39,7 @@ name                  2/2       Running   0          1s
 那从`kubectl create`被执行，到`Pod`的创建完成，这中间件到底发生了什么呢？整个生命周期在流转的过程中经过了哪些组件？让我们从`kubectl`说起...
 
 ## kubectl
-kubectl 是 Kubernetes 集群的命令行工具，当我们执行`kubectl create`命令的时候，kubectl 会进行基本的客户端校验操作，包括对创建资源的检查或者创建文本的格式等内容进行校验，随后会进行身份认证。在类Unix系统中我们可以在`~/.kube/config`找到 kubectl 的配置文件，这个配置文件被称为kubeconfig。kubectl 使用 kubeconfig 来组织集群、用户、命名空间和身份认证等信息。当然我们也可以通过设置环境变量`KUBECONFIG`或者使用 kubectl 时带上参数`--kubeconfig`来指定其他的配置文件，且kubectl识别kubeconfig的顺序依次为：`--kubeconfig`、`KUBECONFIG`、`~/.kube/config`。
+kubectl 是 Kubernetes 集群的命令行工具，当我们执行`kubectl create`命令的时候，kubectl 会进行基本的参数校验操作，包括对创建资源的检查或者创建文本的格式等内容进行校验，随后获取用户的身份信息。在类Unix系统中我们可以在`~/.kube/config`找到 kubectl 的配置文件，这个配置文件被称为kubeconfig。kubectl 使用 kubeconfig 来组织集群、用户、命名空间和身份认证等信息。当然我们也可以通过设置环境变量`KUBECONFIG`或者使用 kubectl 时带上参数`--kubeconfig`来指定其他的配置文件，且kubectl识别kubeconfig的顺序依次为：`--kubeconfig`、`KUBECONFIG`、`~/.kube/config`。
 
 我们来看一下kebuconfig文件的内容：
 
@@ -65,9 +65,31 @@ users:                  # 用户信息
 ```
 由此可以看出，kubeconfig 中有三个关键的字段：集群信息、上下文和用户信息。
 
-kubectl 会根据当前上下文确定要操作的集群以及根据用户的信息完成身份认证，随后向 kube-api-server 发送 HTTP 请求，开始完成 Pod 的创建过程。
+kubectl 会根据当前上下文确定要操作的集群以及提供用户的身份认证信息，并把这些内容塞到 HTTP 的请求头中向 kube-api-server 发起请求，开始进行 Pod 的创建过程。
 
 ## kube-api-server
+
+kube-api-server 负责为 Kubernetes 提供 RESTful APIs 供其他组件变更集群的资源信息，并对请求进行认证、鉴权和准入控制等安全校验功能，而我们 Pod 的创建过程也需要经过这三个过程。
+
+### 认证
+
+认证是身份校验，解决『你是谁』的问题。Kubernetes 虽然会使用到用户信息，但它本身并不直接管理用户，也没提供创建和存储用户的设计，而是直接与第三方用户权限平台进行对接。在 Kubernetes 中常使用 x509 证书、Token等方式进行身份校验，Token 可以是用户自己提供的静态 Token，也可以是 ServiceAccount Token、Bootstrap Token、OIDC Token、Webhook Token等，只要在 HTTP 请求的 Header 中添加 Authorization 字段，值为 Bearer + <Token> 即可。
+
+如果认证成功，就进入后续的授权过程。
+
+### 授权
+
+授权负责做权限控制，解决『你能做什么』的问题。请求在经过认证后，可以证明请求是合法的，但是并不能证明请求是有权限进行操作的，因此 kube-api-server 还需要对请求进行授权检查。
+
+Kubernetes 支持 Node、ABAC、RBAC、Webhook 等多种授权模块：
++ Node：只能访问自己节点上的资源；
++ ABAC：执行静态文件中定义的策略；
++ RBAC：基于角色的访问控制，可动态配置策略；
++ Webhook：集群外提供授权的校验；
+
+授权阶段会根据从认证阶段中拿到的用户信息，依次按照配置的授权次序逐一进行权限验证，任一授权模块通过验证，即可视为该请求拥有操作资源的权限。
+
+### 准入控制
 
 ## kube-controller-manager
 
