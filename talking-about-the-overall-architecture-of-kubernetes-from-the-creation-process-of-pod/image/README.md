@@ -65,11 +65,11 @@ users:                  # 用户信息
 ```
 由此可以看出，kubeconfig 中有三个关键的字段：集群信息、上下文和用户信息。
 
-kubectl 会根据当前上下文确定要操作的集群以及提供用户的身份认证信息，并把这些内容塞到 HTTP 的请求头中向 kube-api-server 发起请求，开始进行 Pod 的创建过程。
+kubectl 会根据当前上下文确定要操作的集群以及提供用户的身份认证信息，并把这些内容塞到 HTTP 的请求头中向 kube-apiserver 发起请求，开始进行 Pod 的创建过程。
 
-## kube-api-server
+## kube-apiserver
 
-kube-api-server 负责为 Kubernetes 提供 RESTful APIs 供其他组件变更集群的资源信息，并对请求进行认证、鉴权和准入控制等安全校验功能，而我们 Pod 的创建过程也需要经过这三个过程。
+kube-apiserver 负责为 Kubernetes 提供 RESTful APIs 供其他组件变更集群的资源信息，并对请求进行认证、鉴权和准入控制等安全校验功能，而我们 Pod 的创建过程也需要经过这三个过程。
 
 ### 认证
 
@@ -79,7 +79,7 @@ kube-api-server 负责为 Kubernetes 提供 RESTful APIs 供其他组件变更�
 
 ### 授权
 
-授权负责做权限控制，解决『你能做什么』的问题。请求在经过认证后，可以证明请求是合法的，但是并不能证明请求是有权限进行操作的，因此 kube-api-server 还需要对请求进行授权检查。
+授权负责做权限控制，解决『你能做什么』的问题。请求在经过认证后，可以证明请求是合法的，但是并不能证明请求是有权限进行操作的，因此 kube-apiserver 还需要对请求进行授权检查。
 
 Kubernetes 支持 Node、ABAC、RBAC、Webhook 等多种授权模块：
 + Node：只能访问自己节点上的资源；
@@ -87,9 +87,11 @@ Kubernetes 支持 Node、ABAC、RBAC、Webhook 等多种授权模块：
 + RBAC：基于角色的访问控制，可动态配置策略；
 + Webhook：集群外提供授权的校验；
 
-授权阶段会根据从认证阶段中拿到的用户信息，依次按照配置的授权次序逐一进行权限验证，任一授权模块通过验证，即可视为该请求拥有操作资源的权限。
+授权阶段会根据从认证阶段中拿到的用户信息，依次按照配置的授权次序逐一进行权限验证，任一授权模块通过验证，即可视为该请求拥有操作资源的权限，随后进入准入控制的校验。
 
 ### 准入控制
+
+准入控制可以让 kube-apiserver 在真正处理对象前做一些校验参数和修改配置的工作，官方的准入控制器有数十个，本文不做过多介绍，详情可以参考 Kubernetes 官网[使用准入控制器](https://kubernetes.io/zh/docs/reference/access-authn-authz/admission-controllers)。
 
 ## kube-controller-manager
 
