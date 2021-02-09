@@ -125,3 +125,4 @@ kubelet 是运行在每个 Kubernetes 节点上的守护进程，它会向 kube-
 kube-proxy 也是运行在每个 Kubernetes 节点上的守护进程，它能够为 Service 对象生成 iptables 或者 ipvs 规则，从而将 Service 的流量转发至正确的 Pod 对象中。kube-proxy与Kubernetes 的网络模型有关，本次实践没有使用上Service 对象，同时 Kubernetes 的网络模型比较复杂，我们在后续文章再详细展开。
 
 ## 时序图
+[](images/kubernetes.png)
