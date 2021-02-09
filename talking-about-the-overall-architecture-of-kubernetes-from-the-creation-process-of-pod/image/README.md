@@ -118,10 +118,10 @@ kube-conntroller-manager 是 Kubernetes 中内置的控制器，它们负责调�
 
 ## kubelet
 
-kubelet 是运行在每个 Kubernetes 节点上的守护进程，它会向 kube-apiserver 注册当前节点信息，并从 kube-apiserver 接收关于 Pod 对象的配置信息并确保它们处于期望的状态，同时会监控容器和节点的资源使用情况并定期上报。为了增加拓展性，kubelet 在 1.5 版本后开始通过 CRI 与容器运行时（如Docker）进行交互，CRI 提供抽象接口，容器运行时负责具体实现过程。
+kubelet 是运行在每个 Kubernetes 节点上的守护进程，它会向 kube-apiserver 注册当前节点信息，并从 kube-apiserver 接收关于 Pod 对象的配置信息并确保它们处于期望的状态，同时会监控容器和节点的资源使用情况并定期上报。为了增加拓展性，kubelet 在 1.5 版本后开始通过 CRI 与容器运行时（如Docker）进行交互，CRI 提供抽象接口，容器运行时负责具体实现过程，而网络则交给 CNI 完成构建。
 
 ## kube-proxy 
 
 kube-proxy 也是运行在每个 Kubernetes 节点上的守护进程，它能够为 Service 对象生成 iptables 或者 ipvs 规则，从而将 Service 的流量转发至正确的 Pod 对象中。kube-proxy与Kubernetes 的网络模型有关，本次实践没有使用上Service 对象，同时 Kubernetes 的网络模型比较复杂，我们在后续文章再详细展开。
 
-## 架构
+## 时序图
